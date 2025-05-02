@@ -32,49 +32,44 @@ public class KafkaConsumer : BackgroundService
         using var consumer = new ConsumerBuilder<string, string>(config).Build();
         consumer.Subscribe(_config["Kafka:TransactionValidatedTopic"]);
 
-        _logger.LogInformation("Kafka consumer for transaction-validated started");
+        _logger.LogInformation("Kafka consumer for 'transaction-validated' topic started");
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 var result = consumer.Consume(stoppingToken);
-                _logger.LogInformation("📨 Recibido evento Kafka: {payload}", result.Message.Value);
+                _logger.LogInformation("Received Kafka event: {payload}", result.Message.Value);
                 var message = JsonSerializer.Deserialize<TransactionValidatedEvent>(result.Message.Value);
 
                 if (message == null)
                 {
-                    _logger.LogWarning("⚠️ No se pudo deserializar el evento transaction-validated");
+                    _logger.LogWarning("Could not deserialize transaction-validated event");
                     continue;
                 }
 
-                if (message != null)
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                _logger.LogInformation("Looking for transaction with ID {Id}", message.TransactionId);
+
+                var transaction = await db.Transactions
+                    .FirstOrDefaultAsync(t => t.Id == message.TransactionId, stoppingToken);
+
+                if (transaction == null)
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    _logger.LogInformation("🔍 Buscando transacción con ID {Id}", message.TransactionId);
-
-                    var transaction = await db.Transactions
-                        .FirstOrDefaultAsync(t => t.Id == message.TransactionId, stoppingToken);
-                    if (transaction == null)
-                    {
-                        _logger.LogWarning("❌ Transacción con ID {Id} no encontrada", message.TransactionId);
-                        continue;
-                    }
-
-                    if (transaction != null)
-                    {
-                        transaction.Status = message.Status;
-                        _logger.LogInformation("📝 Actualizando estado a {Status}", message.Status);
-                        db.Entry(transaction).Property(t => t.Status).IsModified = true;
-                        await db.SaveChangesAsync(stoppingToken);
-                        _logger.LogInformation("Transaction {Id} updated to {Status}", message.TransactionId, message.Status);
-                    }
+                    _logger.LogWarning("Transaction with ID {Id} not found", message.TransactionId);
+                    continue;
                 }
+
+                transaction.Status = message.Status;
+                _logger.LogInformation("Updating status to {Status}", message.Status);
+                db.Entry(transaction).Property(t => t.Status).IsModified = true;
+                await db.SaveChangesAsync(stoppingToken);
+                _logger.LogInformation("Transaction {Id} successfully updated to {Status}", message.TransactionId, message.Status);
             }
             catch (ConsumeException ex)
             {
-                _logger.LogError(ex, "Error consuming Kafka message");
+                _logger.LogError(ex, "Error while consuming Kafka message");
             }
         }
     }

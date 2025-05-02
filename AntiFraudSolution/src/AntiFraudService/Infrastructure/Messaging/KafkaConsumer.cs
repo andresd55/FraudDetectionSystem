@@ -41,7 +41,7 @@ public class KafkaConsumer : BackgroundService
             {
                 var result = consumer.Consume(stoppingToken);
                 var transaction = JsonSerializer.Deserialize<TransactionCreatedEvent>(result.Message.Value);
-                _logger.LogInformation("📥 Evento recibido: TransactionId = {Id}", transaction.Id);
+                _logger.LogInformation("Received event: TransactionId = {Id}", transaction.Id);
 
                 if (transaction != null)
                 {

@@ -32,13 +32,13 @@ public class TransactionServiceImpl : ITransactionService
             CreatedAt = DateTime.UtcNow
         };
 
-        Console.WriteLine("🧾 Se va a guardar la transacción...");
+        Console.WriteLine("Saving transaction...");
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync();
-        Console.WriteLine("✅ Transacción guardada");
+        Console.WriteLine("Transaction saved successfully.");
 
         await _kafka.SendTransactionCreatedAsync(transaction);
-        Console.WriteLine("📤 Evento enviado a Kafka");
+        Console.WriteLine("TransactionCreated event published to Kafka.");
         return transaction;
     }
 

@@ -33,6 +33,6 @@ public class KafkaProducer
         };
 
         await _producer.ProduceAsync(_topic, message);
-        Console.WriteLine($"📤 Publicado evento de validación: {validation.TransactionId} - {validation.Status}");
+        Console.WriteLine($"Published validation event: {validation.TransactionId} - {validation.Status}");
     }
 }
