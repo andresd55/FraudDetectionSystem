@@ -1,0 +1,18 @@
+[
+  {
+    "ContainingType": "AntiFraudService.API.Controllers.AntiFraudController",
+    "Method": "ValidateTransaction",
+    "RelativePath": "api/AntiFraud/validate",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "validation",
+        "Type": "AntiFraudService.Domain.Entities.TransactionValidation",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
